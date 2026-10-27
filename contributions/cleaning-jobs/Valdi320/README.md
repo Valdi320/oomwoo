@@ -138,3 +138,21 @@ auto-empty and mop-wash provider protocols plus hardware sensors; actual
 vacuum/mop actuator-state coverage, full-home endurance, and canonical
 OOMWOO ROS2 API/maintainer approval. Lab relay publishes to a SAFE,
 NON-MOTOR topic only. This is not 100% of a hardware cleaning robot.
+
+
+### Additional nonhardware physical coverage-admission contract
+
+Source: https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/0bf06d549374df5c55eb6c76a453f8b28adf9b6c
+
+PhysicalCoverageAdmission is a fail-closed, pure-Python policy that
+rejects credit for floor cells unless fresh and map-matching
+localization, an accepted active navigation goal, independently
+verified vacuum current and/or mop actuator contact, and a trusted
+coverage source all agree. It has 22 additional negative/positive
+tests; the entire regression suite passes 459/459 tests in normal,
+optimized and Python 3.12-container modes.
+
+**No real vacuum-current sensor, mop-switch, source authentication or
+physical actuator has been connected**. This does NOT certify that
+the hardware actually cleans. Production must supply independent
+signed/trusted sensor metadata and MCU-owned safety interlocks.
