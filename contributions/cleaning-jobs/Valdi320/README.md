@@ -1,54 +1,40 @@
-# Valdi320 — cleaning-jobs: measured coverage, real keepout and crash recovery
+# Valdi320 — cleaning-jobs: original OOMWOO sweep reuse / next integration
 
-**Independent Apache-2.0 source:** https://github.com/Valdi320/oomwoo-cleaning-jobs
-**Validated commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/5f035caf8b127b3f8ab2f47056f5de93597de4e7
-**Crash-recovery evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/DURABLE_NAV2_CRASH_RECOVERY.md
-**Two-node Gazebo process-crash run:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/evidence/persistent_node_crash_recovery_20261027.json
-**Real Nav2 KeepoutFilter run:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/REAL_NAV2_KEEPOUT_GAZEBO.md
+**Source:** https://github.com/Valdi320/oomwoo-cleaning-jobs
+**Verified revision:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/ca5f9ea1dd8d412bf2645f9f2bcb86addae8ff07
+**Simulation evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/UPSTREAM_SWEEP_SINGLE_NAV2_OWNER.md
 
-### Completed/tested contributions to date
+## Current follow-up increment
 
-- Hardware-independent durable cleaning-job checkpoints, manual
-  rooms/whole-map/spot target scopes and safe recovery state transitions.
-- Experimental private ROS2 controller with real NavigateToPose action
-  client, cancel-before-accept race handling, terminal-result gating,
-  fake/stale cleaning-evidence rejection, lifecycle, footprint and
-  costmap admission.
-- Official OOMWOO simulated ground-truth coverage meter integration:
-  measured 9/9 small spot cells across 3/3 independent cold Gazebo
-  tests, two real Nav2 goals per run and no false cleaning credit.
-- Deterministic offline room segmentation with human labels,
-  persisted room scopes, no-go polygons and virtual-wall mask files.
-- An isolated Nav2 Jazzy overlay with REAL KeepoutFilter in global
-  and local costmaps; 220 forbidden cells marked 100; real 108-pose
-  route and 2 OOMWOO Gazebo drives avoided that static rectangle.
-  A private job-level gate rejects forbidden destinations up-front.
-- Fail-closed behavior when FilterInfoServer disappears while a
-  cleaning job is paused: no unsafe resumption or extra goal.
-- **NEW: durable preallocated ROS2 action UUID journal**, fsynced
-  BEFORE send_goal_async; a restarted controller cannot lose the
-  identity of an accepted Nav2 goal and blindly issue a new one.
-- **NEW: actual OOMWOO/Gazebo process crash and restart validation:**
-  first long-running ROS2 cleaning node was killed while Nav2 moved,
-  replacement node loaded paused checkpoint, rejected premature
-  resume, canceled the exact old UUID, required terminal canceled
-  and >1.2s fresh quiet odometry, then explicitly resumed a second
-  real Nav2 goal with a NEW UUID and terminal canceled it.
-- **233/233** pure Python regression cases + ROS2 real-middleware
-  tests pass, including Python optimized and Python 3.12.
+- Reuses the **unmodified, existing** OOMWOO boustrophedon sweep planner's
+  waypoint *geometry* without spinning its Nav2 action executor. This avoids
+  two independent components commanding the same robot.
+- Official test_room upstream plan: 409 source waypoints, adapted conservatively
+  under the existing 5-cell clearance to 391 unique endpoints; 5 original
+  positions rejected instead of silently weakening collision clearance.
+- Real OOMWOO Gazebo + real Nav2 NavigateToPose, with **one action owner**:
+  5 goals succeeded, **337 independently measured new coverage cells**
+  recorded from the official, unmodified simulation ground-truth meter.
+  A partial test only; not a complete room/home sweep.
+- Bounded measured coverage disk selector skips a waypoint only when the
+  *external meter* shows actually marked cells, never on Nav2 success alone.
+- Prior work merged in PR #78 remains available: durable jobs and safe
+  recovery, exact UUID journal, Nav2 KeepoutFilter sandbox, offline room/zone
+  plans and small measured 9/9-cell spot regressions.
+- 255/255 pure-Python regressions pass on the contributor's PC, Python -O
+  and Python 3.12 in a no-network container.
 
-### Still NOT finished
+## Still under development
 
-The private simulation node still primarily covers small spot work.
-No maintainer-approved public job action/status interface, standard
-upstream KeepoutFilter bringup, complete room/multi-room sweep
-ownership, dock-cycle coordination or physical robot safety tests.
-Unknown/never-received Nav2 UUID states and multi-client shared
-server arbitration are deliberately fail-closed. Battery telemetry
-in the simulator harness is synthetic; ground-truth coverage does
-NOT demonstrate vacuum dirt removal.
+Full-room autonomous execution, lost-coverage gap repair, multi-room
+selection, battery/bin/mop dock-cycle, the final ROS2 action/service API,
+and multi-map endurance tests are **not validated** by this incremental
+pointer. Later implementation is maintained in the independent repo.
 
-Maintainers: please advise the definitive cleaning-jobs API, exclusive
-Nav2 action owner, canonical KeepoutFilter configuration and
-trusted coverage-estimator integration. This PR changes only
-the contributor-owned pointer, NOT upstream runtime or shared contracts.
+No robot hardware, MCU safety, physical dirt removal, or real charging
+hardware has been tested. Battery input for OOMWOO's test_room integration
+is synthetic. The maintainer should select the final public job API and
+single owner of Nav2 actions before this work is deployed.
+
+Apache-2.0; ChatGPT-assisted. This upstream PR changes only this
+contributor-owned pointer and does NOT alter shared OOMWOO runtime/contracts.
