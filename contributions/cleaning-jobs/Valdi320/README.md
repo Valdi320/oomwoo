@@ -1,40 +1,67 @@
-# Valdi320 — cleaning-jobs: original OOMWOO sweep reuse / next integration
+# Valdi320 — cleaning-jobs, ten substantial engineering milestones
 
-**Source:** https://github.com/Valdi320/oomwoo-cleaning-jobs
-**Verified revision:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/ca5f9ea1dd8d412bf2645f9f2bcb86addae8ff07
-**Simulation evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/UPSTREAM_SWEEP_SINGLE_NAV2_OWNER.md
+Independent Apache-2.0 implementation:
+https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-## Current follow-up increment
+**Verified source commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/c9fab39542c32377566850529c9350ac7cc5b4b9
 
-- Reuses the **unmodified, existing** OOMWOO boustrophedon sweep planner's
-  waypoint *geometry* without spinning its Nav2 action executor. This avoids
-  two independent components commanding the same robot.
-- Official test_room upstream plan: 409 source waypoints, adapted conservatively
-  under the existing 5-cell clearance to 391 unique endpoints; 5 original
-  positions rejected instead of silently weakening collision clearance.
-- Real OOMWOO Gazebo + real Nav2 NavigateToPose, with **one action owner**:
-  5 goals succeeded, **337 independently measured new coverage cells**
-  recorded from the official, unmodified simulation ground-truth meter.
-  A partial test only; not a complete room/home sweep.
-- Bounded measured coverage disk selector skips a waypoint only when the
-  *external meter* shows actually marked cells, never on Nav2 success alone.
-- Prior work merged in PR #78 remains available: durable jobs and safe
-  recovery, exact UUID journal, Nav2 KeepoutFilter sandbox, offline room/zone
-  plans and small measured 9/9-cell spot regressions.
-- 255/255 pure-Python regressions pass on the contributor's PC, Python -O
-  and Python 3.12 in a no-network container.
+## Major verified deliverables
 
-## Still under development
+- The UNMODIFIED OOMWOO boustrophedon waypoint generator is reused
+  without starting its own navigation executor: 409 original targets,
+  391 conservatively admitted distinct waypoints, five original
+  unsafe/unresolved targets explicitly flagged (not falsely completed).
+- A bounded REAL OOMWOO Gazebo + Nav2 action trial issued exactly six
+  waypoints, all succeeded, with 348 NEW cells from the ORIGINAL
+  simulated ground-truth coverage meter; 246 cells were durably
+  retained across a SYNTHETIC battery/bin/mop station service pause.
+  This does NOT prove an entire room was cleaned.
+- Persistent multi-step sweep campaigns, selected-room/whole-home
+  orchestration, gap analysis, fixed-size retry bounds, checkpoint
+  restart handling and write-ahead coverage journals were developed
+  and tested with deliberate interrupted-write fault injection.
+- 12/12 separate deterministic SYNTHETIC three-room home scenarios
+  completed all eligible cells with no forbidden-zone entries, while
+  exercising simulated dock cycles and a controller restart.
+  These are NOT 12 Nav2/Gazebo full-home simulations.
+- An experimental typed ROSIDL StartCleaning / ControlCleaning /
+  GetCleaningStatus package builds offline and passes actual ROS2
+  middleware calls against a FAKE Nav2 action server, including
+  duplicate-request and cancel/result gating.
+- REAL Nav2 Jazzy/Gazebo KeepoutFilter originally passed two static
+  prohibited-zone robot movements. This follow-up additionally
+  demonstrates LIVE static-zone replacement using LoadMap:
+  old 220-cell zone replaced with new 198-cell zone, confirmed by
+  two distinct global/local post-filter updates and time-fenced
+  TF2 map<-odom conversion; NO motor/navigation command during edit.
+- Subsequent actual ComputePathToPose accepted a 32-pose route to
+  the former forbidden zone but stopped 0.40 m short of the new
+  forbidden destination on a truncated 15-pose path. The application
+  must reject forbidden goals before dispatch, regardless of Nav2's
+  success code.
+- 383/383 pure-Python regressions PASS, including Python -O and
+  Python 3.12, plus separate real ROS2 protocol and Nav2/Gazebo tests.
 
-Full-room autonomous execution, lost-coverage gap repair, multi-room
-selection, battery/bin/mop dock-cycle, the final ROS2 action/service API,
-and multi-map endurance tests are **not validated** by this incremental
-pointer. Later implementation is maintained in the independent repo.
+## Reproducible reports
 
-No robot hardware, MCU safety, physical dirt removal, or real charging
-hardware has been tested. Battery input for OOMWOO's test_room integration
-is synthetic. The maintainer should select the final public job API and
-single owner of Nav2 actions before this work is deployed.
+- [Ten milestones, reality labels and limits](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/TEN_SUBSTANTIAL_MILESTONES_20261027.md)
+- [Verified live KeepoutFilter edit](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/REAL_NAV2_DYNAMIC_KEEPOUT_20261027.md)
+- [Six real Nav2 goals / synthetic station](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/evidence/upstream_sweep_6goals_hardened_20261027.json)
+- [12 synthetic homes](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/evidence/synthetic_multihome_12cases_20261027.json)
 
-Apache-2.0; ChatGPT-assisted. This upstream PR changes only this
-contributor-owned pointer and does NOT alter shared OOMWOO runtime/contracts.
+## Critical remaining work / maintainer decisions
+
+These are independent test modules; a production full-room or
+multi-room queue is NOT integrated into the persistent OOMWOO ROS2
+node. The typed services are an isolated PRIVATE prototype, not a
+canonical approved OOMWOO interface. The verified KeepoutFilter
+overlay is NOT in OOMWOO's stock bringup. Real dock/recharge hardware,
+MCU safety, physical dirt removal, actual sensor-gated cleaning and
+multi-room long-duration Nav2/Gazebo validation remain outstanding.
+
+Please advise (1) the canonical job API and (2) the exclusive Nav2
+action owner so this can be integrated without two autonomous planners.
+
+ChatGPT-assisted, reproducibly tested on Linux in an isolated offline
+OOMWOO Jazzy/Gazebo environment. Upstream changes ONLY this owned
+contribution pointer; shared runtime and other contributors stay unchanged.
