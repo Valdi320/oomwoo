@@ -90,3 +90,51 @@ Report: https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/REAL_ROO
 
 Physical station service, real motor mux/Nav2 dock arbitration, MCU
 safety and whole multi-room Gazebo endurance remain for integration.
+
+## Follow-up 2026-10-27: TWO COMPLETE digital zones in REAL OOMWOO Gazebo
+
+**Published implementation and tests:**
+https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/471a483f51fed1ba727c5befa49b39e54ac93fc3
+
+The same persistent simulation-only cleaning controller completed two
+different operator-defined, disjoint virtual regions on the official
+OOMWOO test_room map in ONE selected-room job. These regions are on the
+SAME OPEN FLOOR, not separated by architectural walls.
+
+- Area A: **80/80** externally measured cells.
+- Area B: **40/40** externally measured cells.
+- Total: **120/120** independently measured eligible cells, 100%
+  of exactly the selected virtual map scope.
+- REAL OOMWOO Nav2 Jazzy: **18 accepted goals**; original OOMWOO
+  ground-truth meter: **200 observed frames**; **12** bounded
+  gap-repair routes proposed (no fabricated cleaning credit).
+- Both durable CleaningJobs and SweepCampaign checkpoints reached
+  COMPLETED with identical 120-cell credited sets. CoverageWAL had
+  20 applied events and zero pending. The final UUID was terminal
+  CANCELED after external completion; no active goal remained.
+- Earlier 117/120 partial/timeout runs are preserved separately and
+  were not misreported as successful.
+
+An experimental isolated ROS2 dock velocity relay now uses the fsync'd
+CURRENT Nav2 goal UUID, observed ACTIVE during this lease and then
+matching terminal before transferring from Nav2 to dock_drive. Old
+terminal statuses cannot authorize a new run. Foreign Nav2 action,
+battery-low, empty/stale status and expired owner commands force STOP.
+Actual ROS2 middleware/typed control test PASS, with SYNTHETIC
+status/odometry/battery and NO MOTOR CONNECTIONS. The separate
+UNMODIFIED upstream OOMWOO 2D docking harness also passed 7/7
+simulated geometric approaches, not physical charging.
+
+**437/437** headless regressions PASS on host, optimized Python and
+Python 3.12; existing ROS2 probe matrix remains green.
+
+- [Actual two-zone Gazebo evidence](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/evidence/real_two_virtual_zones_complete_20261027.json)
+- [ROS2 exact-UUID dock relay evidence](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/evidence/ros2_exact_uuid_dock_relay_20261027.json)
+- [Integration and production limits](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/REAL_TWO_ZONES_AND_DOCK_RELAY_20261027.md)
+
+**Production remainers:** physically divided furnished-room navigation,
+real exclusive robot cmd_vel remaps and MCU safety; charge current,
+auto-empty and mop-wash provider protocols plus hardware sensors; actual
+vacuum/mop actuator-state coverage, full-home endurance, and canonical
+OOMWOO ROS2 API/maintainer approval. Lab relay publishes to a SAFE,
+NON-MOTOR topic only. This is not 100% of a hardware cleaning robot.
