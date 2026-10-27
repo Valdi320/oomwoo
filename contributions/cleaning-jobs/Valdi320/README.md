@@ -65,3 +65,28 @@ action owner so this can be integrated without two autonomous planners.
 ChatGPT-assisted, reproducibly tested on Linux in an isolated offline
 OOMWOO Jazzy/Gazebo environment. Upstream changes ONLY this owned
 contribution pointer; shared runtime and other contributors stay unchanged.
+
+
+### Latest follow-up: measured virtual-room completion in REAL Gazebo
+
+Independent source commit: https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/1cd6b5eb5753a832113e6a3c416e6fc084ecde80
+
+The opt-in persistent ROS2 controller now schedules the **original OOMWOO
+sweep-plan geometry** under one Nav2 owner, saves the per-room plan and
+verifies coverage from the unmodified official Gazebo ground-truth meter.
+For one **operator-defined digital region** in an OPEN test_room (NOT a
+physically separated apartment room), actual checkpoints show
+**171/171 eligible floor cells externally measured**, BOTH durable
+CleaningJobs and SweepCampaign states COMPLETED, 11 Nav2 requests in
+the log and the final UUID terminal CANCELED.
+
+Added guarded gap-route proposals (Nav2 endpoint tolerance can leave
+a narrow dirty fringe) and a software-only dock geometry / exclusive
+cmd_vel owner handoff contract. 425/425 pure Python regressions PASS.
+This is NOT proof that the real robot can safely hand motors between
+Nav2 and dock-drive, charge, empty its dustbin, wash mop or remove dirt.
+
+Report: https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/main/docs/REAL_ROOM_AND_DOCK_BOUNDARY_20261027.md
+
+Physical station service, real motor mux/Nav2 dock arbitration, MCU
+safety and whole multi-room Gazebo endurance remain for integration.
