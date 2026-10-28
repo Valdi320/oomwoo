@@ -2,9 +2,27 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/f8e0e6413a8105f877f971c085b65daafa185ba9
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/694aaf3bb401a90973d4624fb711d7cb78b4973a
 
-## Maintainer quick review (2026-10-28): durable sweep campaign cross-process serialization
+## Maintainer quick review (2026-10-28): reject replaced Nav2 journal writer lock inode
+
+- **Safety defect reproduced:** opening and flock-locking a private `goal.json.lock` did not establish that its *pathname still named the locked inode*. A same-user lock rotation between open and acquisition could let another process lock a replacement while the original holder still issued a different Nav2 UUID. Of three deterministic new controls **two FAILED before the fix**, while stable-lock control passed.
+- **Minimal fix:** after nonblocking exclusive flock, compare named lock `st_dev/st_ino` with the original descriptor and fail closed on rename, substitution or disappearance, **before** modifying the goal journal. Existing durable UUID-before-send ordering, Linux advisory lock and JSON schema unchanged.
+- **Exact code:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/694aaf3bb401a90973d4624fb711d7cb78b4973a
+- **Isolated comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/f8e0e6413a8105f877f971c085b65daafa185ba9...694aaf3bb401a90973d4624fb711d7cb78b4973a
+- **Contributor branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-goal-lock-identity-20261028
+- **Verification (Linux, executed):** new focal **3/3 PASS**, prior lock **4/4 PASS**, journal **15/15 PASS**, full regression **633/633 PASS**, `python3 -O` **633/633 PASS**, `git diff --check` PASS; **2 original counterexamples reproduced as failing pre-fix controls**.
+- **CI:** [exact-SHA CI](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40782540933) status: completed; conclusion: success; jobs: unit (3.12):success, unit (3.10):success
+- **Minimum reproduction:** checkout exact source SHA; `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_goal_journal_lock_identity_20261028.py' -q`; then `PYTHONPATH=src python3 -m unittest discover -s tests -q` and `PYTHONPATH=src python3 -O -m unittest discover -s tests -q`.
+- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/694aaf3bb401a90973d4624fb711d7cb78b4973a/docs/evidence/goal_journal_lock_identity_20261028.json ; [review and exact limits](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/694aaf3bb401a90973d4624fb711d7cb78b4973a/docs/GOAL_JOURNAL_LOCK_IDENTITY_20261028.md).
+- **Risk/compatibility:** no API or journal schema changes; relies on cooperating Linux processes and private local filesystem. A malicious actor replacing the name **after** the check, distinct journal paths, network FS and full global Nav2 arbitration remain unproven/unprotected.
+- **Boundary:** SYNTHETIC Linux filesystem test **only**, not ROS2/Nav2/Gazebo, SBC/CPU power, real motors, MCU braking, charger or physical cleaning.
+- **Integrate / revert:** review the isolated diff; import selectively into a canonical maintainer-owned cleaning controller after agreeing exclusive Nav2 owner and single journal path, then rerun Linux tests and ROS2 end-to-end. Revert an imported patch with a normal inverse commit; never force-merge or discard a live/orphaned Nav2 UUID.
+- **Review / TODO:** [ ] decide canonical Nav2 single owner and durable journal location; [ ] run real ROS2 restart/rename recovery; [ ] measure full-stack low-cost ARM hardware; [ ] MCU-owned physical stop remains mandatory. No upstream runtime edits, no new PR, no new routine comment.
+
+---
+
+## Previous review snapshot (2026-10-28): durable sweep campaign cross-process serialization
 
 - **Problem (reproduced):** two SweepCampaign writers can both read revision 1 and one erase a durable cancellation with a stale RUNNING write; a symlink/hardlink checkpoint is also accepted; FIFO substitution can hang startup. Three safe pre-fix negative controls observed 3 expected FAIL; the FIFO was not executed against vulnerable code.
 - **Fix:** contributor-only stable private Linux flock sidecar around revision read/compare/fsync/atomic rename; startup recovery checks the exact revision and new creation cannot overwrite an unexpectedly existing checkpoint. Bounded (16 MiB), nonblocking no-follow regular-single-link file reads reject swapped links/special inodes.
