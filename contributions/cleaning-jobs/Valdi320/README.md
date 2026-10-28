@@ -5,6 +5,19 @@ https://github.com/Valdi320/oomwoo-cleaning-jobs
 
 **Verified source commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/c9fab39542c32377566850529c9350ac7cc5b4b9
 
+## Current reviewer pointer — 2026-10-28
+
+- **Verified source SHA:** [5f93fa4e43a887a849e1be32b8d30dc3fa589caa](https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/5f93fa4e43a887a849e1be32b8d30dc3fa589caa)
+- **Change:** fail-closed Nav2 goal-journal filesystem checks for symlinks, replaced files and size limits; isolated experimental contribution, no upstream runtime changes.
+- **Focused comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/a6582801fa9ce88e3b5cce7a4d696aa26645aa90...5f93fa4e43a887a849e1be32b8d30dc3fa589caa
+- **Verification reported for this source revision:** focal 7/7 PASS; normal Python 597/597 PASS; Python -O 597/597 PASS; [GitHub Actions Python 3.10/3.12, 2/2 PASS](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40719731221).
+- **Reproduce:** `python3 -m unittest discover -s tests -q` after checking out the source SHA; inspect project test setup for required dependencies.
+- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/5f93fa4e43a887a849e1be32b8d30dc3fa589caa/docs/evidence/goal_journal_inode_guard_20261028.json
+- **Limits:** synthetic/Linux filesystem tests; NOT a ROS2/Gazebo integration or hardware validation for this change. Multi-controller Nav2 arbitration and MCU safety remain outstanding.
+- **Integration/rollback:** review source changes and dependent commits before selective import; revert an imported change using a normal inverse commit, never force-push.
+- **Maintainer decisions:** canonical cleaning API, exclusive Nav2 action ownership, trusted coverage sensor interfaces.
+
+---
 ## Major verified deliverables
 
 - The UNMODIFIED OOMWOO boustrophedon waypoint generator is reused
