@@ -1,25 +1,24 @@
 # Valdi320 — cleaning-jobs: current reviewer pointer
 
-**Independent Apache-2.0 source:** https://github.com/Valdi320/oomwoo-cleaning-jobs
+**Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest published and tested source:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/ac4ccd7c83691cab589ad21653886a906b6473eb
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/8123edd8b30e01fcbb46470af4d3470aa4326473
 
-## Maintainer quick review (2026-10-28)
+## Maintainer quick review (2026-10-28): measured resource fast path
 
-- **Fix:** Experimental ROS2 cleaning node now rejects sending a new Nav2 goal when the latest GoalStatusArray is absent, stale (>2.5s), malformed/UNKNOWN/duplicated, or shows another ACTIVE/EXECUTING/CANCELING UUID. This replaces an unchecked claim of backend idleness with a conservative status preflight.
-- **Source branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-nav2-status-preflight-20261028
-- **Focused source comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/6dca3bbd0ad708f53683f14eeee7dd626593ab38...ac4ccd7c83691cab589ad21653886a906b6473eb
-- **Boundaries:** checked before creating fresh spot/room checkpoints, prior to both new dispatch paths, and again immediately before building/submitting an ActionClient request or writing the Nav2 UUID journal. No automatic rearming on missing evidence.
-- **Host Python 3.14.3:** focused 13/13 PASS; legacy journal 30/30 PASS; full regression 614/614 PASS; optimized Python 614/614 PASS; syntax and synthetic demo PASS.
-- **GitHub Actions for this exact SHA:** completed/success, Python 3.10 + 3.12 PASS: https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40749887941
-- **Reproduce:** checkout this source SHA, then run PYTHONPATH=src python3 -m unittest discover -s tests -q; run python3 -O separately.
-- **Evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/ac4ccd7c83691cab589ad21653886a906b6473eb/docs/evidence/nav2_fresh_status_preflight_20261028.json
-- **Design/limits:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/ac4ccd7c83691cab589ad21653886a906b6473eb/docs/NAV2_FRESH_STATUS_PREFLIGHT_20261028.md
-- **Reality level:** synthetic Linux + fake ActionClient and static ROS2 callsite checks only; NO live ROS2/Gazebo or physical motors/MCU. Not atomic multi-client ownership; unauthenticated DDS status is not a trustworthy global arbitration mechanism.
-- **Integrate/rollback:** review this one contributor-owned source diff, import only compatible code after maintainer API review; revert through normal commits, retain unresolved durable journals, never force-push.
-- **Maintainer decisions:** canonical cleaning-jobs API, exclusive Nav2 action owner, how to validate fresh idle state and safe hardware stop; live Gazebo status heartbeat and interleaving tests remain TODO.
+- **Problem:** a pure-Python measured-sweep selector recalculated all traversable cells repeatedly during disk inspection. This creates avoidable full-map work, especially in a long multi-room job.
+- **Fix:** calculate an immutable local traversability snapshot once per select call, reuse the same snapshot for scope, exclusions and every sampled sweep cell; preserve all coverage evidence and keepout checks.
+- **Diff:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/ac4ccd7c83691cab589ad21653886a906b6473eb...8123edd8b30e01fcbb46470af4d3470aa4326473
+- **Owner source branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-selector-resource-baseline-20261028
+- **Synthetic PC benchmark:** identical 30×18, three virtual rooms, 530/530 credited floor cells, 125 synthetic goals, no forbidden cells entered; two trials per revision, one x86 desktop core pinned: median wall time **9.104s before / 0.796s after (91.3% less)**. Process peak RSS **23168 KiB before / 23832 KiB after**; **NO memory saving claimed**.
+- **Validation:** 3/3 additional focused tests PASS; full local Python test suite **617/617 PASS**, Python -O **617/617 PASS**; [exact-SHA CI Python 3.10 and 3.12, both PASS](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40757977174).
+- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/8123edd8b30e01fcbb46470af4d3470aa4326473/docs/evidence/selector_one_snapshot_resource_20261028.json
+- **Reproduce:** checkout the source SHA; run `PYTHONPATH=src python3 tests/bench_home_resources.py --seed 0 --one-core` and `PYTHONPATH=src python3 -m unittest discover -s tests -q`, then repeat with `python3 -O`.
+- **Limits:** host-specific two-trial synthetic Python measurement, **not full ROS2, Nav2, Gazebo, low-cost ARM SBC or physical robot**. No validated power, thermal, minimum RAM, battery, motors, MCU watchdog or cleaning quality; cheap hardware selection must wait for a full-stack representative workload. Runtime behavior is not integrated into official OOMWOO.
+- **Integration / rollback:** reviewer may import the isolated contributor source change after inspecting the small diff and verifying tests; normal `git revert` can back it out. No forced merge, upstream Nav2 runtime or third-party files changed.
+- **Outstanding maintainer decisions:** canonical cleaning-job API and exclusive Nav2 action owner; measurement of full-stack CPU, RAM, latency and power on affordable hardware.
 
-Historical results below are snapshots, not current validation totals.
+Historical milestones below are snapshots, not the current benchmark or CI result.
 
 ---
 
