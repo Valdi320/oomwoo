@@ -1,23 +1,28 @@
-# Valdi320 — cleaning-jobs, ten substantial engineering milestones
+# Valdi320 — cleaning-jobs: current reviewer pointer
 
-Independent Apache-2.0 implementation:
-https://github.com/Valdi320/oomwoo-cleaning-jobs
+**Independent Apache-2.0 source:** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Verified source commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/c9fab39542c32377566850529c9350ac7cc5b4b9
+**Latest independently published, tested source:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/6dca3bbd0ad708f53683f14eeee7dd626593ab38
 
-## Current reviewer pointer — 2026-10-28
+## Maintainer quick review (2026-10-28)
 
-- **Verified source SHA:** [5f93fa4e43a887a849e1be32b8d30dc3fa589caa](https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/5f93fa4e43a887a849e1be32b8d30dc3fa589caa)
-- **Change:** fail-closed Nav2 goal-journal filesystem checks for symlinks, replaced files and size limits; isolated experimental contribution, no upstream runtime changes.
-- **Focused comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/a6582801fa9ce88e3b5cce7a4d696aa26645aa90...5f93fa4e43a887a849e1be32b8d30dc3fa589caa
-- **Verification reported for this source revision:** focal 7/7 PASS; normal Python 597/597 PASS; Python -O 597/597 PASS; [GitHub Actions Python 3.10/3.12, 2/2 PASS](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40719731221).
-- **Reproduce:** `python3 -m unittest discover -s tests -q` after checking out the source SHA; inspect project test setup for required dependencies.
-- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/5f93fa4e43a887a849e1be32b8d30dc3fa589caa/docs/evidence/goal_journal_inode_guard_20261028.json
-- **Limits:** synthetic/Linux filesystem tests; NOT a ROS2/Gazebo integration or hardware validation for this change. Multi-controller Nav2 arbitration and MCU safety remain outstanding.
-- **Integration/rollback:** review source changes and dependent commits before selective import; revert an imported change using a normal inverse commit, never force-push.
-- **Maintainer decisions:** canonical cleaning API, exclusive Nav2 action ownership, trusted coverage sensor interfaces.
+- **Fix:** nonblocking fail-closed `GoalJournal` read when journal path is a FIFO; reject a hardlinked writer lock before admitting a Nav2 goal. Synthetic Linux filesystem checks only.
+- **Branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-journal-fifo-20261028-1810
+- **Focused source diff:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/5f93fa4e43a887a849e1be32b8d30dc3fa589caa...6dca3bbd0ad708f53683f14eeee7dd626593ab38
+- **Negative control before fix:** 4 tests: 1 FIFO-read timeout (2 seconds), 1 hardlink-lock admission failure, 2 PASS. Post-fix **4/4 PASS**.
+- **Local Linux Python 3.14:** 30/30 journal tests, 601/601 full suite, 601/601 Python -O, compile and demo all PASS.
+- **GitHub Actions at publication:** Pure-Python regression: completed/success (https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40739705852)
+- **Reproduce:** checkout exact source SHA, then `PYTHONPATH=src python3 -m unittest discover -s tests -q`; run `-O` separately for optimized checks.
+- **Evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/6dca3bbd0ad708f53683f14eeee7dd626593ab38/docs/evidence/goal_journal_special_files_20261028.json
+- **Detailed notes:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/6dca3bbd0ad708f53683f14eeee7dd626593ab38/docs/NAV2_JOURNAL_NONBLOCKING_SPECIAL_FILES_20261028.md
+- **Limits:** NO ROS2/Gazebo or physical robot tests for this fix. Independent Nav2 ownership arbitration, malicious directory tampering, real MCU safety, and hardware remain OPEN. No changes to upstream runtime or other contributors.
+- **Integrate/rollback:** review dependencies before selective import; use regular `git revert` if rolled back, never forcibly rewrite history.
+- **Maintainer decisions:** canonical job API, exclusive Nav2 action owner, physical evidence integration.
+
+The historical results below are snapshots, **not** the current CI/test state.
 
 ---
+
 ## Major verified deliverables
 
 - The UNMODIFIED OOMWOO boustrophedon waypoint generator is reused
