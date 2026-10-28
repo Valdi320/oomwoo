@@ -2,9 +2,29 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/8123edd8b30e01fcbb46470af4d3470aa4326473
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/b778d81786ab6d71684a455f00486e9fbe23d3af
 
-## Maintainer quick review (2026-10-28): measured resource fast path
+## Maintainer quick review (2026-10-28): map-frame provenance safety
+
+- **Problem reproduced before patch:** 3/5 newly added tests FAILED: when an OccupancyGrid kept identical pixels but changed world origin (x/y) or yaw, the same adapted cell-index sweep plan was accepted, including a durable campaign that wrote a session. A cell index alone does **not** identify the same physical floor point after map-origin changes.
+- **Fix:** SHA-256 geometry binding (frame, grid size, exact resolution, origin x/y and yaw) added to `SafeSweepPlan` and its plan digest; reject stale plans in the measured selector and durable campaign **before** choosing goals or writing a checkpoint.
+- **Source commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/b778d81786ab6d71684a455f00486e9fbe23d3af
+- **Focused diff:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/8123edd8b30e01fcbb46470af4d3470aa4326473...b778d81786ab6d71684a455f00486e9fbe23d3af
+- **Independent source branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-plan-frame-binding-20261028
+- **PASS (Linux x86-64, Python 3.14.3):** 6/6 focused post-fix tests; 623/623 full regressions normal and 623/623 under `python3 -O`; `git diff --check` PASS. Pre-fix negative controls: 3 expected FAIL, 2 PASS (not regressions on fixed SHA).
+- **Exact source CI:** [GitHub Actions 40766758124](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40766758124), Python 3.10 and 3.12 **2/2 PASS**.
+- **Reproduce:** checkout source commit above; `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_sweep_plan_geometry_provenance_20261028.py' -v`; then `PYTHONPATH=src python3 -m unittest discover -s tests -q` and `PYTHONPATH=src python3 -O -m unittest discover -s tests -q`.
+- **Machine evidence:** [JSON](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/b778d81786ab6d71684a455f00486e9fbe23d3af/docs/evidence/sweep_plan_frame_binding_20261028.json); [review/replay constraints](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/b778d81786ab6d71684a455f00486e9fbe23d3af/docs/SWEEP_PLAN_FRAME_PROVENANCE_20261028.md).
+- **Compatibility/risk:** plan-digest format intentionally changes; old checkpoints and direct `SafeSweepPlan` construction cannot silently migrate. Re-adapt from current validated map and reconcile outstanding Nav2 actions externally before new jobs. Exact float checks may reject equivalent transforms after lossy round-trip; that is conservative.
+- **Integration/revert:** evaluate isolated source patch, apply/cherry-pick into an explicitly owned module only after canonical ROS2 interface/owner review, rerun focal + full tests; revert imported commit normally if necessary. No shared upstream runtime, firmware, CAD, charging logic or motor endpoints were modified.
+- **Evidence boundary:** **synthetic/headless pure Python only** for this patch; NOT a ROS2/Gazebo, ARM SBC, physical hardware, cleaning-quality, MCU or battery validation.
+- **Reviewer checklist / TODO:** [ ] confirm chosen cleaning job API; [ ] establish a single Nav2 action owner; [ ] verify map geometry provenance at real ROS2 lifecycle/restarts; [ ] verify Nav2/Gazebo integration and eventual safe physical hardware under MCU interlocks.
+
+The previous measured CPU resource optimization remains documented below; no performance improvement is claimed for this safety patch.
+
+---
+
+## Previous review snapshot (2026-10-28): measured resource fast path
 
 - **Problem:** a pure-Python measured-sweep selector recalculated all traversable cells repeatedly during disk inspection. This creates avoidable full-map work, especially in a long multi-room job.
 - **Fix:** calculate an immutable local traversability snapshot once per select call, reuse the same snapshot for scope, exclusions and every sampled sweep cell; preserve all coverage evidence and keepout checks.
