@@ -2,9 +2,27 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/694aaf3bb401a90973d4624fb711d7cb78b4973a
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/69b01e3d09fae953aefca031c4f58a337f259da7
 
-## Maintainer quick review (2026-10-28): reject replaced Nav2 journal writer lock inode
+## Maintainer quick review (2026-10-29): reject contradictory in-flight Nav2 statuses
+
+- **Problem:** during a temporary Nav2 lifecycle-service delay, an in-flight goal was treated as healthy if the current UUID appeared active ANYWHERE in a GoalStatusArray, including packets containing another active UUID, a duplicate contradictory UUID, or unknown states. Three such original acceptance counterexamples were reproduced in pure Python.
+- **Fix:** validate the *entire* status snapshot and require exactly one ACTIVE UUID equal to the fsynced durable UUID. Valid terminal history for other goals is tolerated. No new dispatch, timer, checkpoint schema or physical motor behavior is enabled.
+- **Source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/69b01e3d09fae953aefca031c4f58a337f259da7
+- **Small source comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/694aaf3bb401a90973d4624fb711d7cb78b4973a...69b01e3d09fae953aefca031c4f58a337f259da7
+- **Branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-nav2-inflight-status-20261029
+- **Verified local Linux tests:** focal **8/8 PASS**, regression **641/641 PASS**, optimized Python **641/641 PASS**, diff check PASS.
+- **Exact-SHA CI:** [Pure-Python regression](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40789782794) completed/success
+- **Reproduce:** check out source SHA; run `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_nav2_inflight_status_integrity_20261029.py' -q`, then `PYTHONPATH=src python3 -m unittest discover -s tests -q `and `PYTHONPATH=src python3 -O -m unittest discover -s tests -q`.
+- **Evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/69b01e3d09fae953aefca031c4f58a337f259da7/docs/evidence/nav2_inflight_status_integrity_20261029.json ; **review notes:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/69b01e3d09fae953aefca031c4f58a337f259da7/docs/NAV2_INFLIGHT_STATUS_INTEGRITY_20261029.md
+- **Compatibility / risk:** no public API or schema change; intentionally stricter during Nav2 lifecycle fallback and may freeze an already-running simulation when ROS2 statuses are ambiguous.
+- **Scope:** synthetic Linux Python and AST wiring ONLY; no real Nav2/ROS2/Gazebo validation for this patch, no DDS authentication, global Nav2 lock, physical motor/MCU/charging or low-cost ARM benchmark.
+- **Integration / rollback:** review narrow source diff, selectively adopt into the canonical Nav2 owner after agreement, run real ROS2 lifecycle fault replay and motor interlocks before any physical deployment; revert imported commit normally if necessary.
+- **TODO for maintainer:** agree canonical cleaning API, sole Nav2 owner, separate MCU stop, and full-stack cheap SBC benchmark. No GitHub comment added.
+
+---
+
+## Previous review snapshot (2026-10-28): reject replaced Nav2 journal writer lock inode
 
 - **Safety defect reproduced:** opening and flock-locking a private `goal.json.lock` did not establish that its *pathname still named the locked inode*. A same-user lock rotation between open and acquisition could let another process lock a replacement while the original holder still issued a different Nav2 UUID. Of three deterministic new controls **two FAILED before the fix**, while stable-lock control passed.
 - **Minimal fix:** after nonblocking exclusive flock, compare named lock `st_dev/st_ino` with the original descriptor and fail closed on rename, substitution or disappearance, **before** modifying the goal journal. Existing durable UUID-before-send ordering, Linux advisory lock and JSON schema unchanged.
