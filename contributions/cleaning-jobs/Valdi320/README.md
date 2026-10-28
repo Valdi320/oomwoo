@@ -2,9 +2,26 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/b778d81786ab6d71684a455f00486e9fbe23d3af
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/f8e0e6413a8105f877f971c085b65daafa185ba9
 
-## Maintainer quick review (2026-10-28): map-frame provenance safety
+## Maintainer quick review (2026-10-28): durable sweep campaign cross-process serialization
+
+- **Problem (reproduced):** two SweepCampaign writers can both read revision 1 and one erase a durable cancellation with a stale RUNNING write; a symlink/hardlink checkpoint is also accepted; FIFO substitution can hang startup. Three safe pre-fix negative controls observed 3 expected FAIL; the FIFO was not executed against vulnerable code.
+- **Fix:** contributor-only stable private Linux flock sidecar around revision read/compare/fsync/atomic rename; startup recovery checks the exact revision and new creation cannot overwrite an unexpectedly existing checkpoint. Bounded (16 MiB), nonblocking no-follow regular-single-link file reads reject swapped links/special inodes.
+- **Exact source:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/f8e0e6413a8105f877f971c085b65daafa185ba9
+- **Focused compare:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/b778d81786ab6d71684a455f00486e9fbe23d3af...f8e0e6413a8105f877f971c085b65daafa185ba9
+- **Source branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-sweep-campaign-serialization-20261028
+- **Tests on Linux Python:** new focal **7/7 PASS**, previous SweepCampaign **18/18 PASS**; full suite **630/630 PASS** and Python -O **630/630 PASS**; git diff --check PASS. [Exact-SHA GitHub CI](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40775706627) **PASS** (Python 3.10 and 3.12).
+- **Reproduce:** checkout new source SHA; PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_sweep_campaign_serialization_20261028.py' -q; then PYTHONPATH=src python3 -m unittest discover -s tests -q and PYTHONPATH=src python3 -O -m unittest discover -s tests -q.
+- **Evidence:** [machine-readable 7+630 results and pre-fix controls](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/f8e0e6413a8105f877f971c085b65daafa185ba9/docs/evidence/sweep_campaign_serialization_20261028.json); [review/spec/compatibility](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/f8e0e6413a8105f877f971c085b65daafa185ba9/docs/SWEEP_CAMPAIGN_SERIALIZATION_20261028.md).
+- **Compatibility and risk:** schema-1 JSON is unchanged. File and lock must be private single-link regular files; legacy permissive checkpoint files will fail closed until owner inspects/repairs permissions. Busy lock rejects transitions instead of silently rearming. Local Linux advisory flock does NOT provide global exclusive Nav2 goal ownership across distinct processes/paths or protect against a malicious noncooperating writer.
+- **Integrate / revert:** examine isolated source/test diff, import only into the canonical owned cleaning-job controller after agreeing checkpoint ownership, rerun the suite and real ROS2/Gazebo recovery; revert imported commit normally if required. Do not delete unresolved Nav2 journals. This contribution does not touch main, upstream runtime, firmware, CAD, motor or charging control.
+- **Boundary:** SYNTHETIC local Linux filesystem tests only for this patch; NOT ROS2/Nav2/Gazebo, ARM SBC, physical hardware, energy or real cleaning.
+- **Review decisions/TODO:** [ ] canonical cleaning-job API; [ ] unique Nav2 action owner; [ ] real ROS2/Gazebo concurrency/crash test; [ ] eventual MCU-owned physical interlocks.
+
+---
+
+## Previous review snapshot (2026-10-28): map-frame provenance safety
 
 - **Problem reproduced before patch:** 3/5 newly added tests FAILED: when an OccupancyGrid kept identical pixels but changed world origin (x/y) or yaw, the same adapted cell-index sweep plan was accepted, including a durable campaign that wrote a session. A cell index alone does **not** identify the same physical floor point after map-origin changes.
 - **Fix:** SHA-256 geometry binding (frame, grid size, exact resolution, origin x/y and yaw) added to `SafeSweepPlan` and its plan digest; reject stale plans in the measured selector and durable campaign **before** choosing goals or writing a checkpoint.
