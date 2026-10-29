@@ -2,9 +2,26 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/36bf42537194d2593240d7db76c5f726273c7ff3
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/4519fca8dd932262b35ad063aaf05e7be0f47a7c
 
-## Maintainer quick review (2026-10-29): residual-gap CPU optimization, 97.56% in one synthetic benchmark
+## Maintainer quick review (2026-10-29): exact bounded grid-clearance CPU improvement
+
+- **Problem:** per-obstacle square inflation of occupied/unknown/keepout grid cells incurred repeated Python work with dense furniture maps and high conservative clearance, an avoidable cost for prospective inexpensive SBC hardware.
+- **Minimal contributor-only fix:** Grid.blocked now adaptively uses exact per-row spans (sparse maps), 2D rectangular difference/prefix sum (dense maps), or full-boundary short circuit; original Chebyshev inflation, no-go geometry and outer-map margins preserved. Dense temporary integer array is bounded to 4*(w+1)*(h+1) bytes on the tested platform; no new external dependencies, ROS2/Nav2/hardware paths or motor decisions changed.
+- **Exact owner commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/4519fca8dd932262b35ad063aaf05e7be0f47a7c
+- **Review comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/36bf42537194d2593240d7db76c5f726273c7ff3...4519fca8dd932262b35ad063aaf05e7be0f47a7c
+- **Owner-only branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-grid-inflation-resource-20261029-0549
+- **Synthetic x86_64 Python 3.14.3 CPU benchmarks, three runs each, matching SHA256 blocked sets:** furnished 256x192 room (clearance 7): median process CPU **0.060451s original -> 0.010890s revised (81.99% less)**; adversarial dense 256x192 map (clearance 10): **0.353394s -> 0.020558s (94.18% less)**. First map retains 34,590 traversable cells. These are local microbenchmarks, **NOT whole robot CPU/power/RAM savings**.
+- **Tests:** 5/5 new focused PASS, including 300 seeded map reference parity cases, dense and sparse branch checks, blocked keepouts and map-boundary equivalence; full regressions **669/669 PASS**, Python -O **669/669 PASS**, git diff --check PASS.
+- **Exact-source CI:** https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40820575099 **completed/success** (unit (3.10), unit (3.12)).
+- **Reproduce:** checkout exact commit; run PYTHONPATH=src python3 -m unittest discover -s tests -p test_grid_inflation_resource_20261029.py -q; run PYTHONPATH=src python3 -m unittest discover -s tests -q and again with python3 -O; benchmark via PYTHONPATH=src:tests python3 tests/bench_grid_inflation_resource_20261029.py.
+- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/4519fca8dd932262b35ad063aaf05e7be0f47a7c/docs/evidence/grid_clearance_resource_20261029.json ; [explanation, compatibility, risk and revert](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/4519fca8dd932262b35ad063aaf05e7be0f47a7c/docs/GRID_CLEARANCE_RESOURCE_20261029.md).
+- **Limits/risk:** pure-Python Linux x86 only, not real ROS2/Jazzy/Gazebo, low-cost ARM SBC or physical robot; dense path uses bounded temporary RAM; no thermal, battery, power, deadline-latency or dirt-removal claims. No source runtime or licensing of upstream makerspet projects changed.
+- **Review/integration/revert:** [ ] verify exact blocked-map parity and keepout, [ ] run real Jazzy/Nav2/Gazebo restart/keepout cases, [ ] profile full-stack RAM/CPU/latency/power on budget ARM, [ ] settle sole Nav2 owner and canonical cleaning API. Integrate only after maintainer approval and live testing; revert the isolated commit normally if incompatible. **No new PR or routine comment.**
+
+---
+
+## Previous review snapshot (2026-10-29): residual-gap CPU optimization, 97.56% in one synthetic benchmark
 
 - **Problem:** a residual-gap line-through sweep scanned every dirty cell for each sample and repeated full-map traversability reconstruction for each candidate route, wasting CPU on prospective budget hardware.
 - **Scope/fix:** independent Apache-2.0 selector now checks only the exact local Euclidean sweep disk and constant Manhattan-radius-three route neighborhood; Grid retains immutable traversable snapshots only for maps up to 65,536 cells. Original costmap-admission callback, clearance, keepout and measured-clean-credit requirements are unchanged. No hardware or motor-control behavior modified.
