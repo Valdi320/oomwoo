@@ -2,7 +2,25 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/7c783d884c60940fb8a734b709b0dca93395f7a8
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e843df534205684f0b9b498d0fd1fc331e997e2a
+
+## Maintainer quick review (2026-10-29): 79.82% less CPU for synthetic uncovered-route scoring
+
+- **Problem:** fallback gap sweeper compared every dirty cell against every route point per candidate, raising CPU demand on prospective affordable hardware.
+- **Correction:** private Apache-2.0 module now enumerates the exact 0.11m corridor neighborhood and counts each dirty cell once. At ultra-fine resolution the original exact algorithm remains as a safe resource-bounded fallback. No change in costmap admission, deterministic route, Nav2 control, safety interfaces, charging or motor authority.
+- **Exact source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e843df534205684f0b9b498d0fd1fc331e997e2a
+- **Small source diff:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/7c783d884c60940fb8a734b709b0dca93395f7a8...e843df534205684f0b9b498d0fd1fc331e997e2a
+- **Contributor branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-sweep-target-resource-20261029-0342
+- **Verification on Linux:** focal equivalence 4/4 PASS (240 deterministic geometric reference cases across eight resolutions), prior sweep-target 10/10 PASS, full regressions 659/659 PASS, optimized Python 659/659 PASS; compileall and diff check PASS. The selected route SHA256, 92 cells and 10 admission callbacks match the original.
+- **Measured local one-core x86_64 Python 3.14.3 benchmark:** 120x68 5cm cells, 2,132 dirty cells; three repeated runs per implementation. Median process CPU 0.354458s before, 0.071538s after: 79.82% lower in this isolated synthetic benchmark. RSS high-water 23184 KiB before / 22444 KiB after; NO memory-saving inference.
+- **Exact-SHA CI:** https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40809197987 completed/success; jobs: unit (3.12) PASS, unit (3.10) PASS.
+- **Reproduce:** check out exact source SHA; run PYTHONPATH=src python3 -m unittest discover -s tests -p test_sweep_target_resource_20261029.py -q, then PYTHONPATH=src python3 -m unittest discover -s tests -q and PYTHONPATH=src python3 -O -m unittest discover -s tests -q; benchmark via PYTHONPATH=src python3 tests/bench_sweep_target_resource_20261029.py.
+- **Raw evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/e843df534205684f0b9b498d0fd1fc331e997e2a/docs/evidence/sweep_target_resource_20261029.json
+- **Reviewer guide, limitations, revert:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/e843df534205684f0b9b498d0fd1fc331e997e2a/docs/SWEEP_TARGET_RESOURCE_20261029.md
+- **Scope:** pure Python x86_64 synthetic, not ROS2/Nav2/Gazebo or ARM SBC, power/heat/memory budget of the complete stack, physical cleaning, motors or MCU safety. No upstream runtime change. Global Nav2 owner still undecided.
+- **Checklist:** [ ] review exact disk/route equivalence, [ ] replay with measured coverage + dynamic keepouts in live Jazzy/Gazebo, [ ] measure full-stack CPU/RAM/latency/power on budget ARM SBC, [ ] settle Nav2 sole owner and official interface. Selectively integrate the private module fix after approval and run full regressions; revert using a normal inverse commit if incompatible, leaving safety gates active. No new PR or comment.
+
+---
 
 ## Maintainer quick review (2026-10-29): exact-UUID cancel service response is exclusive
 
