@@ -2,9 +2,25 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e843df534205684f0b9b498d0fd1fc331e997e2a
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/36bf42537194d2593240d7db76c5f726273c7ff3
 
-## Maintainer quick review (2026-10-29): 79.82% less CPU for synthetic uncovered-route scoring
+## Maintainer quick review (2026-10-29): residual-gap CPU optimization, 97.56% in one synthetic benchmark
+
+- **Problem:** a residual-gap line-through sweep scanned every dirty cell for each sample and repeated full-map traversability reconstruction for each candidate route, wasting CPU on prospective budget hardware.
+- **Scope/fix:** independent Apache-2.0 selector now checks only the exact local Euclidean sweep disk and constant Manhattan-radius-three route neighborhood; Grid retains immutable traversable snapshots only for maps up to 65,536 cells. Original costmap-admission callback, clearance, keepout and measured-clean-credit requirements are unchanged. No hardware or motor-control behavior modified.
+- **Source commit:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/36bf42537194d2593240d7db76c5f726273c7ff3
+- **Review diff:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/e843df534205684f0b9b498d0fd1fc331e997e2a...36bf42537194d2593240d7db76c5f726273c7ff3
+- **Contributor branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-line-gap-neighborhood-20261029-0444
+- **Benchmark:** desktop x86_64 Python 3.14.3 pinned to one core, 120x90 at 5 cm with 630 dirty cells, 3 runs/version. Median process CPU 1.220287s before to 0.029714s after (97.56% lower); wall 1.228272s to 0.029842s. Identical 42-cell path SHA256 65037a5b74e8105fbbf8f5612ea5dadb09248f19319dcd486ff9253ae1f4de83 and 10 admission callbacks. **No RAM reduction claimed.**
+- **Validation:** 5/5 new focal PASS (525 seeded exact-disk equivalence cases, 300 Manhattan parity cases, cache/map edge/route contract), 6/6 previous line-gap PASS, 664/664 full Python PASS, 664/664 Python -O PASS, compileall/diff check PASS. [Exact-source CI](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40814920088): completed/success, Python 3.10 and Python 3.12 jobs PASS.
+- **Reproduce:** checkout exact source SHA; run PYTHONPATH=src python3 -m unittest discover -s tests -p test_line_gap_neighborhood_20261029.py -q; then PYTHONPATH=src python3 -m unittest discover -s tests -q; also repeat with python3 -O. Benchmark: PYTHONPATH=src python3 tests/bench_line_gap_neighborhood_20261029.py.
+- **Evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/36bf42537194d2593240d7db76c5f726273c7ff3/docs/evidence/line_gap_neighborhood_resource_20261029.json ; [design, risks and rollback](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/36bf42537194d2593240d7db76c5f726273c7ff3/docs/LINE_GAP_NEIGHBORHOOD_RESOURCE_20261029.md).
+- **Limits and risks:** synthetic pure Python x86 benchmark **only**, no live Nav2/ROS2/Gazebo, ARM CPU/RAM/energy, full-stack thermal tests or physical robot. The bounded cache uses extra resident memory on each small Grid; multi-Grid memory profiling is pending. Do not extrapolate 97.56% to the whole robot.
+- **Review / integration / revert:** [ ] verify exact distance/route parity and no-go admission; [ ] run Jazzy/Nav2/Gazebo keepout and restart tests; [ ] measure full-stack CPU/RSS/latency/power on affordable ARM; [ ] resolve exclusive Nav2 owner and public job interface. Selectively import the two module changes only after maintainer approval and real safety validation, and revert by ordinary inverse commit if incompatible. Upstream runtime files remain untouched.
+
+---
+
+## Previous review snapshot (2026-10-29): 79.82% less CPU for synthetic uncovered-route scoring
 
 - **Problem:** fallback gap sweeper compared every dirty cell against every route point per candidate, raising CPU demand on prospective affordable hardware.
 - **Correction:** private Apache-2.0 module now enumerates the exact 0.11m corridor neighborhood and counts each dirty cell once. At ultra-fine resolution the original exact algorithm remains as a safe resource-bounded fallback. No change in costmap admission, deterministic route, Nav2 control, safety interfaces, charging or motor authority.
