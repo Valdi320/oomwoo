@@ -2,9 +2,24 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e3689b687329ac2470fcbcf091b2ac55c992ba17
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/4085115e7a4bc488bf013353c8ac4cc22cd1a5ed
 
-## Maintainer quick review (2026-10-29): revoke stale dock-completion proof
+## Maintainer quick review (2026-10-29): concurrent WAL receipt safety
+
+- **Problem:** concurrent writers could independently acknowledge durable coverage receipts even though one atomic JSON replacement discarded the other's data; a stale instance could falsely declare a drained ledger. Existing symlink WALs were accepted, and FIFO reads could hang.
+- **Fix:** private persistent nonblocking `flock` covering initialization, `stage`, and `project`; on-disk WAL compared to the full snapshot under that lock; stale `pending/require_drained` refuses success. No-follow/nonblocking regular/private inode validation and 64-MiB file limit. No shared OOMWOO runtime or motor/charging code changed.
+- **Tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/4085115e7a4bc488bf013353c8ac4cc22cd1a5ed
+- **Exact comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/e3689b687329ac2470fcbcf091b2ac55c992ba17...4085115e7a4bc488bf013353c8ac4cc22cd1a5ed
+- **Own branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-wal-writer-20261029-0744
+- **Reproduce:** check out the exact source commit, then `PYTHONPATH=src python3 -m unittest discover -s tests -p test_coverage_wal_writer_safety_20261029.py -v`; run `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py' -q`; repeat with `python3 -O`. The pure Python tests use Linux; no physical robot, firmware flash or motor commands.
+- **Evidence:** before patch 0/7 new focal PASS (6 FAIL, 1 FIFO timeout ERROR); after patch **7/7 focal PASS, 683/683 full PASS, 683/683 Python -O PASS**, diff check PASS. [Review and limits](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/4085115e7a4bc488bf013353c8ac4cc22cd1a5ed/docs/WAL_WRITER_SAFETY_20261029.md) and [machine evidence](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/4085115e7a4bc488bf013353c8ac4cc22cd1a5ed/docs/evidence/wal_writer_safety_20261029.json).
+- **Exact-source CI:** https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40832127341 — completed/success (Pure-Python regression).
+- **Compatibility/risk:** busy locks fail closed; stale instances must reopen and reconcile. Rejects insecure/special/oversized WALs and requires a stable `.lock` file on one local filesystem. This does not secure hostile same-user races, remote network filesystems or Nav2 ownership; not measured on Gazebo, an ARM SBC or hardware.
+- **Maintainer review:** [ ] inspect inode/locking semantics, [ ] replay real Gazebo ROS2 receipt and restart cases, [ ] benchmark ARM memory/CPU, [ ] ensure global Nav2 ownership and physical motor watchdog. Integrate only via approved selective cherry-pick; revert with `git revert 4085115e7a4bc488bf013353c8ac4cc22cd1a5ed` if unsuitable. Review pending; no PR duplicate or routine comment.
+
+---
+
+## Previous review snapshot (2026-10-29): revoke stale dock-completion proof
 
 - **Safety defect:** experimental exclusive velocity mux accepted SEARCH(False) -> DONE(True) -> SEARCH(False) but retained the earlier dock-complete flags. Subsequent quiet odometry could let finish_dock return geometric_docked=True after the new undocked report. Contradictory IDLE(False) and GOTO(True) also left stale completion evidence.
 - **Minimal owner-only fix:** after a witnessed DONE(True), any changed dock-drive state or false dock-contact retracts completion, resets the mux to STOP, and raises DockHandoffError. Repeated DONE(True) stays valid; normal intermediate states before DONE remain valid. The experimental ROS2 relay forwards docked=False after confirmed DONE, instead of silently ignoring that callback. No output topic, motor interface or upstream runtime changed.
