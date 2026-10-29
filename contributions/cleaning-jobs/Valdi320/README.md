@@ -2,7 +2,24 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e5f4ccbc9b4eae2571563e95adef99854c050349
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/7c783d884c60940fb8a734b709b0dca93395f7a8
+
+## Maintainer quick review (2026-10-29): exact-UUID cancel service response is exclusive
+
+- **Problem / 5 reproduced pre-fix negative controls:** during orphan Nav2 recovery, a successful `CancelGoal` reply was accepted if it included the old UUID among **other canceled UUIDs**, duplicates, a malformed container or boolean return code. The ROS2 service contract for nonzero UUID + zero timestamp targets exactly one goal; accepting a broader reply could mask interference with another owner.
+- **Minimal fix:** `OrphanNav2Witness.cancel_response` now requires integer `ERROR_NONE (0)` and exactly `(known_old_uuid,)`; mismatches latch a permanent recovery fault and **never authorize rearm**. Exact valid reply still requires observed old ACTIVE, terminal CANCELED, fresh status and bounded quiet odometry.
+- **Latest tested code SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/7c783d884c60940fb8a734b709b0dca93395f7a8
+- **Isolated comparison (one source file + 1 focal test + docs/evidence):** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/e5f4ccbc9b4eae2571563e95adef99854c050349...7c783d884c60940fb8a734b709b0dca93395f7a8
+- **Owner branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-exact-cancel-response-20261029-0244
+- **Executed local Linux checks:** pre-fix 5/6 focal tests failed as expected, post-fix **6/6 PASS**, previous restart **20/20 PASS**, previous orphan **8/8 PASS**, full **655/655 PASS** and `python -O` **655/655 PASS**; compile and diff checks PASS.
+- **Exact-SHA CI:** [Python 3.10 and Python 3.12 / run 40802966980](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40802966980) **2/2 PASS**, confirmed completed/success.
+- **Reproduce:** checkout exact SHA; `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_orphan_cancel_reply_exclusive_20261029.py' -q`, then `PYTHONPATH=src python3 -m unittest discover -s tests -q` and `PYTHONPATH=src python3 -O -m unittest discover -s tests -q`.
+- **Machine evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/7c783d884c60940fb8a734b709b0dca93395f7a8/docs/evidence/nav2_exact_cancel_reply_20261029.json ; **scope / ROS2 spec / review / revert:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/7c783d884c60940fb8a734b709b0dca93395f7a8/docs/NAV2_EXACT_CANCEL_REPLY_20261029.md
+- **Compatibility/risk:** no public API or durable schema change; strict rejection may halt automatic recovery when ROS2 service replies are inconsistent. **Synthetic Python Linux only**; no live ROS2/Nav2/Gazebo, ARM SBC, energy, motor safety, or DDS adversarial tests. Global single-owner Nav2 arbitration and independent MCU stop remain unverified.
+- **Integrate / revert:** cherry-pick/select the isolated witness fix only with maintainer approval, run Jazzy/Gazebo exact-cancel request/response and restart regressions before physical use; normally revert the source commit if incompatible while leaving the robot disarmed.
+- **Maintainer checklist:** [ ] approve the sole Nav2 goal owner and exact-cancel semantics; [ ] replay malformed/extra acknowledgment on Gazebo; [ ] keep physical motor-stop chain MCU-owned; [ ] characterize inexpensive ARM compute after full-stack validation. No upstream runtime edit or new discussion comment.
+
+---
 
 ## Maintainer quick review (2026-10-29): require current orphan UUID cancellation proof
 
