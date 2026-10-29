@@ -2,9 +2,25 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/4519fca8dd932262b35ad063aaf05e7be0f47a7c
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e3689b687329ac2470fcbcf091b2ac55c992ba17
 
-## Maintainer quick review (2026-10-29): exact bounded grid-clearance CPU improvement
+## Maintainer quick review (2026-10-29): revoke stale dock-completion proof
+
+- **Safety defect:** experimental exclusive velocity mux accepted SEARCH(False) -> DONE(True) -> SEARCH(False) but retained the earlier dock-complete flags. Subsequent quiet odometry could let finish_dock return geometric_docked=True after the new undocked report. Contradictory IDLE(False) and GOTO(True) also left stale completion evidence.
+- **Minimal owner-only fix:** after a witnessed DONE(True), any changed dock-drive state or false dock-contact retracts completion, resets the mux to STOP, and raises DockHandoffError. Repeated DONE(True) stays valid; normal intermediate states before DONE remain valid. The experimental ROS2 relay forwards docked=False after confirmed DONE, instead of silently ignoring that callback. No output topic, motor interface or upstream runtime changed.
+- **Full owner source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e3689b687329ac2470fcbcf091b2ac55c992ba17
+- **Exact comparison:** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/4519fca8dd932262b35ad063aaf05e7be0f47a7c...e3689b687329ac2470fcbcf091b2ac55c992ba17
+- **Contributor branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-dock-proof-revocation-20261029-0644
+- **Reproduce:** check out exact source commit; run PYTHONPATH=src python3 -m unittest discover -s tests -p test_dock_proof_revocation_20261029.py -v; then PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_*.py', and repeat with python3 -O. Full clean worktree and git diff --check.
+- **Evidence:** before the fix, 3/5 new focal tests failed as expected on source parent 4519fca (post-DONE SEARCH, IDLE, GOTO). After: **7/7 focused PASS**, existing docking regression **13/13 PASS**, full Python **676/676 PASS**, Python -O **676/676 PASS**, diff check PASS. [Source verification and limitations](https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/e3689b687329ac2470fcbcf091b2ac55c992ba17/docs/DOCK_PROOF_REVOCATION_20261029.md).
+- **Exact-source CI:** https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40825840894 **completed/success** (Python 3.10 and 3.12 jobs PASS).
+- **Limitations:** pure Python deterministic Linux tests; ROS2 callback adapter is only code-reviewed, **NOT run in a live ROS2/Gazebo graph**, on an ARM SBC or real robot. Dock status/Bool topics remain unauthenticated. This does not validate charging, physical docking, station services, battery/motor watchdog or hardware stop.
+- **Compatibility/risk:** a contradictory post-DONE message now fail-closes to STOP; replayed/disordered dock telemetry may force a fresh docking attempt. The isolated lab mux remains deliberately unusable directly on real /cmd_vel.
+- **Review and integration:** [ ] review post-DONE revocation and callbacks; [ ] replay ROS2 Jazzy bag with state/contact reordering; [ ] verify no other cmd_vel publisher or Nav2 owner; [ ] validate motor-safe hardware interlock; [ ] test on a budget SBC when approved. Cherry-pick only the owner commit into a selected cleaning-jobs implementation after maintainer approval; do not change the main upstream sources. **Revert:** ordinary git revert e3689b687329ac2470fcbcf091b2ac55c992ba17 in the owner implementation; no history rewrite. Maintainer review pending; no new PR and no routine comment.
+
+---
+
+## Previous review snapshot (2026-10-29): exact bounded grid-clearance CPU improvement
 
 - **Problem:** per-obstacle square inflation of occupied/unknown/keepout grid cells incurred repeated Python work with dense furniture maps and high conservative clearance, an avoidable cost for prospective inexpensive SBC hardware.
 - **Minimal contributor-only fix:** Grid.blocked now adaptively uses exact per-row spans (sparse maps), 2D rectangular difference/prefix sum (dense maps), or full-boundary short circuit; original Chebyshev inflation, no-go geometry and outer-map margins preserved. Dense temporary integer array is bounded to 4*(w+1)*(h+1) bytes on the tested platform; no new external dependencies, ROS2/Nav2/hardware paths or motor decisions changed.
