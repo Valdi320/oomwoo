@@ -2,9 +2,25 @@
 
 **Independent source (Apache-2.0):** https://github.com/Valdi320/oomwoo-cleaning-jobs
 
-**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/69b01e3d09fae953aefca031c4f58a337f259da7
+**Latest tested source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e5f4ccbc9b4eae2571563e95adef99854c050349
 
-## Maintainer quick review (2026-10-29): reject contradictory in-flight Nav2 statuses
+## Maintainer quick review (2026-10-29): require current orphan UUID cancellation proof
+
+- **Problem (4 reproducible pre-fix counterexamples):** the isolated crash-recovery controller could rearm after an old-UUID cancel and a quiet odometry window even when the *latest* GoalStatusArray was empty, contained only unrelated terminal history, carried UNKNOWN(0), or duplicated contradictory statuses. Another transient foreign ACTIVE UUID could be forgotten after disappearing from subsequent status packets.
+- **Fix:** validate each complete ROS2 status snapshot (well-formed unique UUID/code, no UNKNOWN or foreign ACTIVE), latch ambiguous evidence as a recovery fault, and require the **exact old UUID currently CANCELED** at the final Nav2 rearm boundary. Keep existing exact cancel ACK, fresh status receipt, simulation clock and continuous quiet odometry checks. A terminal history for other nonactive goals remains permitted.
+- **Source SHA:** https://github.com/Valdi320/oomwoo-cleaning-jobs/commit/e5f4ccbc9b4eae2571563e95adef99854c050349
+- **Small diff (2 production files, 1 focal test, docs/evidence):** https://github.com/Valdi320/oomwoo-cleaning-jobs/compare/69b01e3d09fae953aefca031c4f58a337f259da7...e5f4ccbc9b4eae2571563e95adef99854c050349
+- **Owner branch:** https://github.com/Valdi320/oomwoo-cleaning-jobs/tree/contrib/cleaning-jobs-orphan-snapshot-integrity-20261029-0140
+- **Focal/restart/total tests (local Linux):** **8/8 PASS**, **20/20 PASS**, **649/649 PASS** normal, **649/649 PASS** `python -O`; `py_compile` and `git diff --check` PASS.
+- **Exact SHA CI:** [Python 3.10 + 3.12](https://github.com/Valdi320/oomwoo-cleaning-jobs/actions/runs/40796162506) **2/2 PASS**.
+- **Reproduce:** checkout the SHA and run `PYTHONPATH=src python3 -m unittest discover -s tests -p 'test_orphan_full_status_snapshot_20261029.py' -q`, then `PYTHONPATH=src python3 -m unittest discover -s tests -q` and `PYTHONPATH=src python3 -O -m unittest discover -s tests -q`.
+- **Evidence:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/e5f4ccbc9b4eae2571563e95adef99854c050349/docs/evidence/nav2_orphan_full_snapshot_integrity_20261029.json ; **scope, integration and rollback:** https://github.com/Valdi320/oomwoo-cleaning-jobs/blob/e5f4ccbc9b4eae2571563e95adef99854c050349/docs/NAV2_ORPHAN_FULL_SNAPSHOT_INTEGRITY_20261029.md
+- **Compatibility/risk:** no public API or disk schema change; stricter, so Nav2 status history expiration can **prevent automatic rearm** until safe explicit reconciliation. All new tests are **synthetic Python Linux**; ROS2 wiring is AST-checked only. Not tested in live ROS2/Gazebo/ARM SBC, not physical motors, no MCU safety; no global Nav2 ownership or DDS trust guarantee.
+- **Maintainer review checklist:** [ ] confirm orphan controller is allowed to be the sole Nav2 action owner; [ ] review two small source files; [ ] replay cold ROS2/Gazebo restart with stale/ambiguous status; [ ] retain MCU-owned stop on hardware. **Integrate** selectively into the approved isolated controller, rerun ROS2 full-stack; **revert** the source commit normally if incompatible, maintaining disarmed state. No PR comment or upstream runtime edit.
+
+---
+
+## Previous review snapshot (2026-10-29): reject contradictory in-flight Nav2 statuses
 
 - **Problem:** during a temporary Nav2 lifecycle-service delay, an in-flight goal was treated as healthy if the current UUID appeared active ANYWHERE in a GoalStatusArray, including packets containing another active UUID, a duplicate contradictory UUID, or unknown states. Three such original acceptance counterexamples were reproduced in pure Python.
 - **Fix:** validate the *entire* status snapshot and require exactly one ACTIVE UUID equal to the fsynced durable UUID. Valid terminal history for other goals is tolerated. No new dispatch, timer, checkpoint schema or physical motor behavior is enabled.
